@@ -1597,6 +1597,25 @@ JSC_DEFINE_HOST_FUNCTION(Bun::jsFunctionMakeErrorWithCode, (JSC::JSGlobalObject 
         return JSValue::encode(createError(globalObject, ErrorCode::ERR_INVALID_IP_ADDRESS, builder.toString()));
     }
 
+    case Bun::ErrorCode::ERR_INVALID_MIME_SYNTAX: {
+        auto arg0 = callFrame->argument(1);
+        auto str0 = arg0.toWTFString(globalObject);
+        RETURN_IF_EXCEPTION(scope, {});
+        auto arg1 = callFrame->argument(2);
+        auto str1 = arg1.toWTFString(globalObject);
+        RETURN_IF_EXCEPTION(scope, {});
+        auto arg2 = callFrame->argument(3);
+        auto str2 = arg2.toWTFString(globalObject);
+        RETURN_IF_EXCEPTION(scope, {});
+        if (str2 == "-1"_s) {
+            auto message = makeString("The MIME syntax for a "_s, str0, " in "_s, str1, " is invalid"_s);
+            return JSC::JSValue::encode(createError(globalObject, ErrorCode::ERR_INVALID_MIME_SYNTAX, message));
+        } else {
+            auto message = makeString("The MIME syntax for a "_s, str0, " in "_s, str1, " is invalid at "_s, str2);
+            return JSC::JSValue::encode(createError(globalObject, ErrorCode::ERR_INVALID_MIME_SYNTAX, message));
+        }
+    }
+
     case Bun::ErrorCode::ERR_INVALID_ADDRESS_FAMILY: {
         auto arg0 = callFrame->argument(1);
         auto str0 = arg0.toWTFString(globalObject);
