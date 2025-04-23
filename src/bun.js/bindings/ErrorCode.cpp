@@ -1384,6 +1384,25 @@ JSC::EncodedJSValue MISSING_OPTION(JSC::ThrowScope& scope, JSC::JSGlobalObject* 
     return {};
 }
 
+JSC::EncodedJSValue INVALID_MIME_SYNTAX(JSC::ThrowScope& scope, JSC::JSGlobalObject* globalObject, const String& part, const String& input, int position)
+{
+    WTF::StringBuilder builder;
+    builder.append("The MIME syntax for a "_s);
+    builder.append(part);
+    builder.append(" in "_s);
+    builder.append(input);
+
+    if (position != -1) {
+        builder.append(" is invalid at "_s);
+        builder.append(String::number(position));
+    } else {
+        builder.append(" is invalid"_s);
+    }
+
+    scope.throwException(globalObject, createError(globalObject, ErrorCode::ERR_INVALID_MIME_SYNTAX, builder.toString()));
+    return {};
+}
+
 EncodedJSValue CLOSED_MESSAGE_PORT(ThrowScope& scope, JSGlobalObject* globalObject)
 {
     scope.throwException(globalObject, createError(globalObject, ErrorCode::ERR_CLOSED_MESSAGE_PORT, "Cannot send data on closed MessagePort"_s));
@@ -1605,15 +1624,9 @@ JSC_DEFINE_HOST_FUNCTION(Bun::jsFunctionMakeErrorWithCode, (JSC::JSGlobalObject 
         auto str1 = arg1.toWTFString(globalObject);
         RETURN_IF_EXCEPTION(scope, {});
         auto arg2 = callFrame->argument(3);
-        auto str2 = arg2.toWTFString(globalObject);
+        auto str2 = arg2.toInt32(globalObject);
         RETURN_IF_EXCEPTION(scope, {});
-        if (str2 == "-1"_s) {
-            auto message = makeString("The MIME syntax for a "_s, str0, " in "_s, str1, " is invalid"_s);
-            return JSC::JSValue::encode(createError(globalObject, ErrorCode::ERR_INVALID_MIME_SYNTAX, message));
-        } else {
-            auto message = makeString("The MIME syntax for a "_s, str0, " in "_s, str1, " is invalid at "_s, str2);
-            return JSC::JSValue::encode(createError(globalObject, ErrorCode::ERR_INVALID_MIME_SYNTAX, message));
-        }
+        return ERR::INVALID_MIME_SYNTAX(scope, globalObject, str0, str1, str2);
     }
 
     case Bun::ErrorCode::ERR_INVALID_ADDRESS_FAMILY: {

@@ -88,6 +88,20 @@ const params = mime.params;
 params.set('charset', 'utf-8');
 assert.strictEqual(params.has('charset'), true);
 assert.strictEqual(params.get('charset'), 'utf-8');
+{
+  // these tests are added by bun
+  assert.strictEqual(params.get("CHARSET"), null); // case sensitive
+  const mime2 = new MIMEType('text/javascript;CHARSET=UTF-8');
+  assert.strictEqual(mime2.params.get("CHARSET"), null);
+  assert.strictEqual(mime2.params.get("charset"), "UTF-8"); // converted to lowercase on parsing
+  assert.strictEqual(mime2.params.has("CHARSET"), false);
+  assert.strictEqual(mime2.params.has("charset"), true);
+  mime2.params.set("CHARSET", "UTF-8");
+  assert.strictEqual(mime2.params.get("CHARSET"), "UTF-8"); // not converted to lowercase on set
+  assert.strictEqual(mime2.params.has("CHARSET"), true);
+  assert.strictEqual(mime2.params.get("charset"), "UTF-8");
+  assert.strictEqual(mime2.params.has("charset"), true);
+}
 assert.deepStrictEqual([...params], [['charset', 'utf-8']]);
 assert.strictEqual(
   JSON.stringify(mime),

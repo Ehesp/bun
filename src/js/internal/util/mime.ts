@@ -1,20 +1,15 @@
-const FunctionPrototypeCall = $getByIdDirect(Function.prototype, "call");
 const ObjectDefineProperty = Object.defineProperty;
 const RegExpPrototypeExec = RegExp.prototype.exec;
-const { SafeMap } = require("internal/primordials");
 const SafeStringPrototypeSearch = (str, regexp) => {
   regexp.lastIndex = 0;
   const match = RegExpPrototypeExec.$call(regexp, str);
   return match ? match.index : -1;
 };
-const StringPrototypeCharAt = String.prototype.charAt;
 const StringPrototypeIndexOf = String.prototype.indexOf;
 const StringPrototypeSlice = String.prototype.slice;
 const StringPrototypeToLowerCase = String.prototype.toLowerCase;
-const SymbolIterator = Symbol.iterator;
 
 const NOT_HTTP_TOKEN_CODE_POINT = /[^!#$%&'*+\-.^_`|~A-Za-z0-9]/g;
-const NOT_HTTP_QUOTED_STRING_CODE_POINT = /[^\t\u0020-~\u0080-\u00FF]/g;
 
 const END_BEGINNING_WHITESPACE = /[^\r\n\t ]|$/;
 const START_ENDING_WHITESPACE = /[\r\n\t ]*$/;
@@ -110,184 +105,8 @@ const encode = value => {
   return `"${escaped}"`;
 };
 
-class MIMEParams {
-  #data = new SafeMap();
-  // We set the flag the MIMEParams instance as processed on initialization
-  // to defer the parsing of a potentially large string.
-  #processed = true;
-  #string = null;
-
-  /**
-   * Used to instantiate a MIMEParams object within the MIMEType class and
-   * to allow it to be parsed lazily.
-   */
-  static instantiateMimeParams(str) {
-    const instance = new MIMEParams();
-    instance.#string = str;
-    instance.#processed = false;
-    return instance;
-  }
-
-  delete(name) {
-    this.#parse();
-    this.#data.delete(name);
-  }
-
-  get(name) {
-    this.#parse();
-    const data = this.#data;
-    if (data.has(name)) {
-      return data.get(name);
-    }
-    return null;
-  }
-
-  has(name) {
-    this.#parse();
-    return this.#data.has(name);
-  }
-
-  set(name, value) {
-    this.#parse();
-    const data = this.#data;
-    name = `${name}`;
-    value = `${value}`;
-    const invalidNameIndex = SafeStringPrototypeSearch(name, NOT_HTTP_TOKEN_CODE_POINT);
-    if (name.length === 0 || invalidNameIndex !== -1) {
-      throw $ERR_INVALID_MIME_SYNTAX("parameter name", name, invalidNameIndex);
-    }
-    const invalidValueIndex = SafeStringPrototypeSearch(value, NOT_HTTP_QUOTED_STRING_CODE_POINT);
-    if (invalidValueIndex !== -1) {
-      throw $ERR_INVALID_MIME_SYNTAX("parameter value", value, invalidValueIndex);
-    }
-    data.set(name, value);
-  }
-
-  *entries() {
-    this.#parse();
-    yield* this.#data.entries();
-  }
-
-  *keys() {
-    this.#parse();
-    yield* this.#data.keys();
-  }
-
-  *values() {
-    this.#parse();
-    yield* this.#data.values();
-  }
-
-  toString() {
-    this.#parse();
-    let ret = "";
-    for (const { 0: key, 1: value } of this.#data) {
-      const encoded = encode(value);
-      // Ensure they are separated
-      if (ret.length) ret += ";";
-      ret += `${key}=${encoded}`;
-    }
-    return ret;
-  }
-
-  // Used to act as a friendly class to stringifying stuff
-  // not meant to be exposed to users, could inject invalid values
-  #parse() {
-    if (this.#processed) return; // already parsed
-    const paramsMap = this.#data;
-    let position = 0;
-    const str = this.#string;
-    const endOfSource =
-      SafeStringPrototypeSearch(StringPrototypeSlice.$call(str, position), START_ENDING_WHITESPACE) + position;
-    while (position < endOfSource) {
-      // Skip any whitespace before parameter
-      position += SafeStringPrototypeSearch(StringPrototypeSlice.$call(str, position), END_BEGINNING_WHITESPACE);
-      // Read until ';' or '='
-      const afterParameterName =
-        SafeStringPrototypeSearch(StringPrototypeSlice.$call(str, position), EQUALS_SEMICOLON_OR_END) + position;
-      const parameterString = toASCIILower(StringPrototypeSlice.$call(str, position, afterParameterName));
-      position = afterParameterName;
-      // If we found a terminating character
-      if (position < endOfSource) {
-        // Safe to use because we never do special actions for surrogate pairs
-        const char = StringPrototypeCharAt.$call(str, position);
-        // Skip the terminating character
-        position += 1;
-        // Ignore parameters without values
-        if (char === ";") {
-          continue;
-        }
-      }
-      // If we are at end of the string, it cannot have a value
-      if (position >= endOfSource) break;
-      // Safe to use because we never do special actions for surrogate pairs
-      const char = StringPrototypeCharAt.$call(str, position);
-      let parameterValue: string | null = null;
-      if (char === '"') {
-        // Handle quoted-string form of values
-        // skip '"'
-        position += 1;
-        // Find matching closing '"' or end of string
-        //   use $1 to see if we terminated on unmatched '\'
-        //   use $2 to see if we terminated on a matching '"'
-        //   so we can skip the last char in either case
-        const insideMatch = RegExpPrototypeExec.$call(QUOTED_VALUE_PATTERN, StringPrototypeSlice.$call(str, position));
-        position += insideMatch[0].length;
-        // Skip including last character if an unmatched '\' or '"' during
-        // unescape
-        const inside =
-          insideMatch[1] || insideMatch[2] ? StringPrototypeSlice.$call(insideMatch[0], 0, -1) : insideMatch[0];
-        // Unescape '\' quoted characters
-        parameterValue = removeBackslashes(inside);
-        // If we did have an unmatched '\' add it back to the end
-        if (insideMatch[1]) parameterValue += "\\";
-      } else {
-        // Handle the normal parameter value form
-        const valueEnd = StringPrototypeIndexOf.$call(str, SEMICOLON, position);
-        const rawValue =
-          valueEnd === -1
-            ? StringPrototypeSlice.$call(str, position)
-            : StringPrototypeSlice.$call(str, position, valueEnd);
-        position += rawValue.length;
-        const trimmedValue = StringPrototypeSlice.$call(
-          rawValue,
-          0,
-          SafeStringPrototypeSearch(rawValue, START_ENDING_WHITESPACE),
-        );
-        // Ignore parameters without values
-        if (trimmedValue === "") continue;
-        parameterValue = trimmedValue;
-      }
-      if (
-        parameterString !== "" &&
-        SafeStringPrototypeSearch(parameterString, NOT_HTTP_TOKEN_CODE_POINT) === -1 &&
-        SafeStringPrototypeSearch(parameterValue, NOT_HTTP_QUOTED_STRING_CODE_POINT) === -1 &&
-        paramsMap.has(parameterString) === false
-      ) {
-        paramsMap.set(parameterString, parameterValue);
-      }
-      position++;
-    }
-    this.#data = paramsMap;
-    this.#processed = true;
-  }
-}
-const MIMEParamsStringify = MIMEParams.prototype.toString;
-ObjectDefineProperty(MIMEParams.prototype, SymbolIterator, {
-  __proto__: null,
-  configurable: true,
-  value: MIMEParams.prototype.entries,
-  writable: true,
-});
-ObjectDefineProperty(MIMEParams.prototype, "toJSON", {
-  __proto__: null,
-  configurable: true,
-  value: MIMEParamsStringify,
-  writable: true,
-});
-
-const { instantiateMimeParams } = MIMEParams;
-delete (MIMEParams as any).instantiateMimeParams;
+const { MIMEParams } = $cpp("JSMIMEParams.cpp", "createJSMIMEParamsBinding");
+const instantiateMimeParams = $newCppFunction("JSMIMEParams.cpp", "instantiateMimeParams", 1);
 
 class MIMEType {
   #type;
@@ -337,7 +156,7 @@ class MIMEType {
 
   toString() {
     let ret = `${this.#type}/${this.#subtype}`;
-    const paramStr = FunctionPrototypeCall.$call(MIMEParamsStringify, this.#parameters);
+    const paramStr = this.#parameters.toString();
     if (paramStr.length) ret += `;${paramStr}`;
     return ret;
   }

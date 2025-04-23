@@ -87,7 +87,9 @@ describe("MIME API", () => {
     expect(mime.essence).toBe("text/javascript");
     expect(`${mime.params}`).toBe("");
     expect(`${new MIMEParams()}`).toBe("");
+    // @ts-expect-error
     expect(`${new MIMEParams(mime.params)}`).toBe("");
+    // @ts-expect-error
     expect(`${new MIMEParams(`${mime.params}`)}`).toBe("");
 
     expect(() => {
@@ -133,7 +135,9 @@ describe("MIME API", () => {
     expect(`${mime}`).toBe("text/javascript;charset=utf-8");
     expect(mime.essence).toBe("text/javascript");
     expect(`${mime.params}`).toBe("charset=utf-8");
+    // @ts-expect-error
     expect(`${new MIMEParams(mime.params)}`).toBe("");
+    // @ts-expect-error
     expect(`${new MIMEParams(`${mime.params}`)}`).toBe("");
 
     // Multiple parameters
