@@ -277,10 +277,6 @@ bool parseMIMEParamsString(JSGlobalObject* globalObject, JSMap* map, StringView 
                     if (position < length && input[position] == '"') {
                         position++; // Skip closing quote
                     } else {
-                        // Unterminated quoted string - spec says treat as token up to next ';'
-                        // Let's just treat it as an error for robustness based on Node's stricter parsing
-                        // scope.throwException(globalObject, Bun::createError(globalObject, Bun::ErrorCode::ERR_INVALID_MIME_SYNTAX, "parameter value", input.toString(), position));
-                        // return false;
                         // Node.js behavior seems to allow this, just consuming until the end or next semicolon
                         valueStr = removeBackslashes(valueView);
                         size_t semicolonPos = input.find(';', position);
@@ -318,14 +314,14 @@ bool parseMIMEParamsString(JSGlobalObject* globalObject, JSMap* map, StringView 
         // Validate name and value according to HTTP token/quoted-string rules
         int invalidNameIndex = findFirstInvalidHTTPTokenChar(name);
         if (name.isEmpty() || invalidNameIndex != -1) {
-            scope.throwException(globalObject, JSValue::decode(Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "parameter name"_s, input.toString(), invalidNameIndex)));
-            return false;
+            Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "parameter name"_s, input.toString(), invalidNameIndex);
+            RETURN_IF_EXCEPTION(scope, false);
         }
 
         int invalidValueIndex = findFirstInvalidHTTPQuotedStringChar(valueStr);
         if (invalidValueIndex != -1) {
-            scope.throwException(globalObject, JSValue::decode(Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "parameter value"_s, input.toString(), invalidValueIndex)));
-            return false;
+            Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "parameter value"_s, input.toString(), invalidValueIndex);
+            RETURN_IF_EXCEPTION(scope, false);
         }
 
         // Add to map only if the name doesn't exist yet (first one wins)
