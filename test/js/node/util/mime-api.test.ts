@@ -1,4 +1,5 @@
 import { describe, test, expect } from "bun:test";
+import { bunExe } from "harness";
 import { MIMEType, MIMEParams } from "util";
 
 describe("MIME API", () => {
@@ -213,4 +214,105 @@ describe("MIME API", () => {
     expect(() => params.set("x", `${NOT_HTTP_QUOTED_STRING_CODE_POINT}x`)).toThrow(/parameter value/i);
     expect(() => params.set("x", `x${NOT_HTTP_QUOTED_STRING_CODE_POINT}`)).toThrow(/parameter value/i);
   });
+});
+
+test("Exact match with node", () => {
+  const result = Bun.spawnSync({
+    cmd: [bunExe(), import.meta.dir + "/exact/mime-test.js"],
+  });
+
+  expect(result.stderr.toString("utf-8")).toBe("");
+  expect(result.exitCode).toBe(0);
+  // exact output on v23.4.0
+  expect(result.stdout.toString("utf-8")).toMatchInlineSnapshot(`
+    "=== BASIC PROPERTIES AND STRING CONVERSION ===
+    mime1: application/ecmascript
+    JSON.stringify: "application/ecmascript"
+    essence: application/ecmascript
+    type: application
+    subtype: ecmascript
+    params empty: true
+    params.has("not found"): false
+    params.get("not found"): true
+
+    === TYPE PROPERTY MANIPULATION ===
+    Original: application/javascript
+    After type change: text/javascript
+    essence: text/javascript
+    Error on empty type as expected
+    Error on invalid type as expected
+
+    === SUBTYPE PROPERTY MANIPULATION ===
+    Original: text/plain
+    After subtype change: text/javascript
+    Error on empty subtype as expected
+    Error on invalid subtype as expected
+
+    === PARAMETERS MANIPULATION ===
+    params.has("charset"): true
+    params.get("charset"): utf-8
+    params entries length: 1
+    mime with charset: text/javascript;charset=utf-8
+    params.has("goal"): true
+    params.get("goal"): module
+    params entries length: 2
+    mime with multiple params: text/javascript;charset=utf-8;goal=module
+    updated charset: iso-8859-1
+    mime with updated charset: text/javascript;charset=iso-8859-1;goal=module
+    params.has("charset") after delete: false
+    params.get("charset") after delete: true
+    params entries length after delete: 1
+    mime after param delete: text/javascript;goal=module
+    params.has("x"): true
+    params.get("x"): empty string
+    mime with empty param: text/javascript;goal=module;x=""
+
+    === PARAMETER CASE SENSITIVITY ===
+    mime5: text/javascript;charset=UTF-8
+    mime5.params.get("CHARSET"): true
+    mime5.params.get("charset"): UTF-8
+    mime5.params.has("CHARSET"): false
+    mime5.params.has("charset"): true
+    mime5.params.has("abc"): false
+    mime5.params.has("def"): false
+    mime5.params.get("CHARSET") after set: UTF-8
+    mime5.params.has("CHARSET") after set: true
+
+    === QUOTED PARAMETER VALUES ===
+    mime6: text/plain;charset=utf-8
+    mime6.params.get("charset"): utf-8
+    mime with filename: text/javascript;goal=module;x="";filename="file with spaces.txt"
+
+    === INVALID PARAMETERS ===
+    Error on empty param name as expected
+    Error on invalid param name as expected
+    Error on invalid param value as expected
+
+    === PARAMS ITERATION ===
+    Iterating params.entries():
+      charset: utf-8
+      format: flowed
+    Iterating params.keys():
+      charset
+      format
+    Iterating params.values():
+      utf-8
+      flowed
+    Iterating params directly:
+      charset: utf-8
+      format: flowed
+
+    === PARSING EDGE CASES ===
+    mime8: text/plain;charset=utf-8;goal=module
+    Has empty param: false
+    mime9: text/plain;charset=utf-8
+    mime9 charset: utf-8
+
+    === TO STRING AND TO JSON ===
+    toString(): text/plain;charset=utf-8
+    toJSON(): text/plain;charset=utf-8
+    params toString(): charset=utf-8
+    params toJSON(): charset=utf-8
+    "
+  `);
 });
