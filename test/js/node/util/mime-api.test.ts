@@ -313,6 +313,97 @@ test("Exact match with node", () => {
     toJSON(): text/plain;charset=utf-8
     params toString(): charset=utf-8
     params toJSON(): charset=utf-8
+    === BASIC MIMEPARAMS OPERATIONS ===
+    New params empty: true
+    params.has("charset"): true
+    params.get("charset"): utf-8
+    params entries length: 1
+    params toString(): charset=utf-8
+
+    === CASE SENSITIVITY ===
+    params.has("CHARSET"): false
+    params.get("CHARSET"): true
+    After setting CHARSET, params.has("CHARSET"): true
+    After setting CHARSET, params.get("CHARSET"): iso-8859-1
+    params.has("charset"): true
+    params.get("charset"): utf-8
+    params entries length: 2
+    params toString(): charset=utf-8;CHARSET=iso-8859-1
+
+    === DELETE OPERATION ===
+    After delete, params.has("charset"): false
+    After delete, params.get("charset"): true
+    params.has("CHARSET"): true
+    params entries length: 1
+    params toString(): CHARSET=iso-8859-1
+
+    === MULTIPLE PARAMETERS ===
+    params entries length: 3
+    params toString(): CHARSET=iso-8859-1;format=flowed;delsp=yes
+
+    === QUOTED VALUES ===
+    params.get("filename"): file with spaces.txt
+    params toString(): CHARSET=iso-8859-1;format=flowed;delsp=yes;filename="file with spaces.txt"
+
+    === EMPTY VALUES ===
+    params.has("empty"): true
+    params.get("empty"): empty string
+    params toString() with empty value: CHARSET=iso-8859-1;format=flowed;delsp=yes;filename="file with spaces.txt";empty=""
+
+    === ESCAPE SEQUENCES IN QUOTED VALUES ===
+    params.get("path"): C:\\Program Files\\App
+    params toString() with backslashes: CHARSET=iso-8859-1;format=flowed;delsp=yes;filename="file with spaces.txt";empty="";path="C:\\\\Program Files\\\\App"
+
+    === SPECIAL CHARACTERS ===
+    params.get("test"): !#$%&'*+-.^_\`|~
+    params toString() with special chars: CHARSET=iso-8859-1;format=flowed;delsp=yes;filename="file with spaces.txt";empty="";path="C:\\\\Program Files\\\\App";test=!#$%&'*+-.^_\`|~
+
+    === ERROR CASES ===
+    Empty name error: TypeError
+    Invalid name error: TypeError
+    Invalid value error: TypeError
+
+    === ITERATION METHODS ===
+    Keys:
+      CHARSET
+      format
+      delsp
+      filename
+      empty
+      path
+      test
+    Values:
+      iso-8859-1
+      flowed
+      yes
+      file with spaces.txt
+      
+      C:\\Program Files\\App
+      !#$%&'*+-.^_\`|~
+    Entries:
+      CHARSET: iso-8859-1
+      format: flowed
+      delsp: yes
+      filename: file with spaces.txt
+      empty: 
+      path: C:\\Program Files\\App
+      test: !#$%&'*+-.^_\`|~
+    Direct iteration:
+      CHARSET: iso-8859-1
+      format: flowed
+      delsp: yes
+      filename: file with spaces.txt
+      empty: 
+      path: C:\\Program Files\\App
+      test: !#$%&'*+-.^_\`|~
+
+    === JSON SERIALIZATION ===
+    params.toJSON(): CHARSET=iso-8859-1;format=flowed;delsp=yes;filename="file with spaces.txt";empty="";path="C:\\\\Program Files\\\\App";test=!#$%&'*+-.^_\`|~
+    JSON.stringify(params): "CHARSET=iso-8859-1;format=flowed;delsp=yes;filename=\\"file with spaces.txt\\";empty=\\"\\";path=\\"C:\\\\\\\\Program Files\\\\\\\\App\\";test=!#$%&'*+-.^_\`|~"
+
+    === CLONE AND MODIFY ===
+    Original params: charset=utf-8;boundary=boundary
+    Cloned params: charset=iso-8859-1;boundary=boundary
     "
   `);
 });

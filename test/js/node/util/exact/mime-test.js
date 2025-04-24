@@ -183,3 +183,133 @@ console.log(`toJSON(): ${mime10.toJSON()}`); // text/plain;charset=utf-8
 
 console.log(`params toString(): ${mime10.params.toString()}`); // charset=utf-8
 console.log(`params toJSON(): ${mime10.params.toJSON()}`); // charset=utf-8
+
+// Basic MIMEParams tests
+console.log("=== BASIC MIMEPARAMS OPERATIONS ===");
+const params2 = new MIMEParams();
+console.log(`New params empty: ${[...params2].length === 0}`); // true
+
+// Set and get operations
+params2.set("charset", "utf-8");
+console.log(`params.has("charset"): ${params2.has("charset")}`); // true
+console.log(`params.get("charset"): ${params2.get("charset")}`); // utf-8
+console.log(`params entries length: ${[...params2].length}`); // 1
+console.log(`params toString(): ${params2.toString()}`); // charset=utf-8
+
+// Case sensitivity
+console.log(`\n=== CASE SENSITIVITY ===`);
+console.log(`params.has("CHARSET"): ${params2.has("CHARSET")}`); // false
+console.log(`params.get("CHARSET"): ${params2.get("CHARSET") === null}`); // true
+params2.set("CHARSET", "iso-8859-1");
+console.log(`After setting CHARSET, params.has("CHARSET"): ${params2.has("CHARSET")}`); // true
+console.log(`After setting CHARSET, params.get("CHARSET"): ${params2.get("CHARSET")}`); // iso-8859-1
+console.log(`params.has("charset"): ${params2.has("charset")}`); // true, original still exists
+console.log(`params.get("charset"): ${params2.get("charset")}`); // utf-8
+console.log(`params entries length: ${[...params2].length}`); // 2
+console.log(`params toString(): ${params2.toString()}`); // charset=utf-8;CHARSET=iso-8859-1
+
+// Delete operation
+console.log(`\n=== DELETE OPERATION ===`);
+params2.delete("charset");
+console.log(`After delete, params.has("charset"): ${params2.has("charset")}`); // false
+console.log(`After delete, params.get("charset"): ${params2.get("charset") === null}`); // true
+console.log(`params.has("CHARSET"): ${params2.has("CHARSET")}`); // true, other case still exists
+console.log(`params entries length: ${[...params2].length}`); // 1
+console.log(`params toString(): ${params2.toString()}`); // CHARSET=iso-8859-1
+
+// Multiple parameters
+console.log(`\n=== MULTIPLE PARAMETERS ===`);
+params2.set("format", "flowed");
+params2.set("delsp", "yes");
+console.log(`params entries length: ${[...params2].length}`); // 3
+console.log(`params toString(): ${params2.toString()}`); // CHARSET=iso-8859-1;format=flowed;delsp=yes
+
+// Parameter values requiring quoting
+console.log(`\n=== QUOTED VALUES ===`);
+params2.set("filename", "file with spaces.txt");
+console.log(`params.get("filename"): ${params2.get("filename")}`); // file with spaces.txt
+console.log(`params toString(): ${params2.toString()}`); // should contain quoted filename
+
+// Empty parameter values
+console.log(`\n=== EMPTY VALUES ===`);
+params2.set("empty", "");
+console.log(`params.has("empty"): ${params2.has("empty")}`); // true
+console.log(`params.get("empty"): ${params2.get("empty") === "" ? "empty string" : params2.get("empty")}`); // empty string
+console.log(`params toString() with empty value: ${params2.toString()}`); // includes empty=""
+
+// Characters requiring escaping in quoted strings
+console.log(`\n=== ESCAPE SEQUENCES IN QUOTED VALUES ===`);
+params2.set("path", "C:\\Program Files\\App");
+console.log(`params.get("path"): ${params2.get("path")}`); // C:\Program Files\App
+console.log(`params toString() with backslashes: ${params2.toString()}`); // should escape backslashes
+
+// Special characters
+console.log(`\n=== SPECIAL CHARACTERS ===`);
+params2.set("test", "!#$%&'*+-.^_`|~");
+console.log(`params.get("test"): ${params2.get("test")}`); // !#$%&'*+-.^_`|~
+console.log(`params toString() with special chars: ${params2.toString()}`); // should not quote these
+
+// Error cases
+console.log(`\n=== ERROR CASES ===`);
+try {
+  params2.set("", "value");
+  console.log("Should throw error for empty name but didn't");
+} catch (e) {
+  console.log(`Empty name error: ${e.name}`);
+}
+
+try {
+  params2.set("invalid name", "value");
+  console.log("Should throw error for invalid name but didn't");
+} catch (e) {
+  console.log(`Invalid name error: ${e.name}`);
+}
+
+try {
+  params2.set("name", "\0");
+  console.log("Should throw error for invalid value but didn't");
+} catch (e) {
+  console.log(`Invalid value error: ${e.name}`);
+}
+
+// Iteration methods
+console.log(`\n=== ITERATION METHODS ===`);
+console.log(`Keys:`);
+for (const key of params2.keys()) {
+  console.log(`  ${key}`);
+}
+
+console.log(`Values:`);
+for (const value of params2.values()) {
+  console.log(`  ${value}`);
+}
+
+console.log(`Entries:`);
+for (const [key, value] of params2.entries()) {
+  console.log(`  ${key}: ${value}`);
+}
+
+console.log(`Direct iteration:`);
+for (const [key, value] of params2) {
+  console.log(`  ${key}: ${value}`);
+}
+
+// toJSON method
+console.log(`\n=== JSON SERIALIZATION ===`);
+console.log(`params.toJSON(): ${params2.toJSON()}`);
+console.log(`JSON.stringify(params): ${JSON.stringify(params2)}`);
+
+// Clone and modify test
+console.log(`\n=== CLONE AND MODIFY ===`);
+const original = new MIMEParams();
+original.set("charset", "utf-8");
+original.set("boundary", "boundary");
+
+const clone = new MIMEParams();
+for (const [key, value] of original) {
+  clone.set(key, value);
+}
+clone.set("charset", "iso-8859-1");
+
+console.log(`Original params: ${original.toString()}`);
+console.log(`Cloned params: ${clone.toString()}`);
