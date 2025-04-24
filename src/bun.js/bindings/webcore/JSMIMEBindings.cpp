@@ -17,7 +17,7 @@ JSValue createMIMEBinding(Zig::GlobalObject* globalObject)
 
     obj->putDirect(vm, PropertyName(Identifier::fromString(vm, "MIMEParams"_s)), globalObject->m_JSMIMEParamsClassStructure.constructor(globalObject));
     obj->putDirect(vm, PropertyName(Identifier::fromString(vm, "MIMEType"_s)), globalObject->m_JSMIMETypeClassStructure.constructor(globalObject));
-    
+
     return obj;
 }
 
