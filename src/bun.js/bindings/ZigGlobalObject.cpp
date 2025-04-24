@@ -78,6 +78,7 @@
 #include "JSBroadcastChannel.h"
 #include "JSBuffer.h"
 #include "JSBufferList.h"
+#include "webcore/JSMIMEBindings.h"
 #include "JSByteLengthQueuingStrategy.h"
 #include "JSCloseEvent.h"
 #include "JSCommonJSExtensions.h"
@@ -97,6 +98,8 @@
 #include "JSEventTarget.h"
 #include "JSFetchHeaders.h"
 #include "JSFFIFunction.h"
+#include "webcore/JSMIMEParams.h"
+#include "webcore/JSMIMEType.h"
 #include "JSMessageChannel.h"
 #include "JSMessageEvent.h"
 #include "JSMessagePort.h"
@@ -2944,6 +2947,11 @@ void GlobalObject::finishCreation(VM& vm)
     m_JSMIMEParamsClassStructure.initLater(
         [](LazyClassStructure::Initializer& init) {
             WebCore::setupJSMIMEParamsClassStructure(init);
+        });
+
+    m_JSMIMETypeClassStructure.initLater(
+        [](LazyClassStructure::Initializer& init) {
+            WebCore::setupJSMIMETypeClassStructure(init);
         });
 
     m_lazyStackCustomGetterSetter.initLater(

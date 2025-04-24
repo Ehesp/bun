@@ -2,15 +2,16 @@
 
 #include "root.h"
 #include "JSDOMWrapper.h" // For JSDOMObject
+#include "JSMIMEParams.h" // Need JSMIMEParams
 #include <JavaScriptCore/JSObject.h>
-#include <JavaScriptCore/JSMap.h>
 #include <JavaScriptCore/InternalFunction.h>
 #include <JavaScriptCore/LazyClassStructure.h>
 #include <JavaScriptCore/JSGlobalObject.h>
+#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
-class JSMIMEParams final : public JSC::JSNonFinalObject {
+class JSMIMEType final : public JSC::JSNonFinalObject {
 public:
     using Base = JSC::JSNonFinalObject;
     static constexpr unsigned StructureFlags = Base::StructureFlags;
@@ -22,33 +23,41 @@ public:
             return nullptr;
         return WebCore::subspaceForImpl<MyClassT, WebCore::UseCustomHeapCellType::No>(
             vm,
-            [](auto& spaces) { return spaces.m_clientSubspaceForJSMIMEParams.get(); },
-            [](auto& spaces, auto&& space) { spaces.m_clientSubspaceForJSMIMEParams = std::forward<decltype(space)>(space); },
-            [](auto& spaces) { return spaces.m_subspaceForJSMIMEParams.get(); },
-            [](auto& spaces, auto&& space) { spaces.m_subspaceForJSMIMEParams = std::forward<decltype(space)>(space); });
+            [](auto& spaces) { return spaces.m_clientSubspaceForJSMIMEType.get(); },
+            [](auto& spaces, auto&& space) { spaces.m_clientSubspaceForJSMIMEType = std::forward<decltype(space)>(space); },
+            [](auto& spaces) { return spaces.m_subspaceForJSMIMEType.get(); },
+            [](auto& spaces, auto&& space) { spaces.m_subspaceForJSMIMEType = std::forward<decltype(space)>(space); });
     }
 
-    static JSMIMEParams* create(JSC::VM& vm, JSC::Structure* structure, JSC::JSMap* map);
+    static JSMIMEType* create(JSC::VM& vm, JSC::Structure* structure, WTF::String type, WTF::String subtype, JSMIMEParams* params);
     static JSC::Structure* createStructure(JSC::VM& vm, JSC::JSGlobalObject* globalObject, JSC::JSValue prototype);
 
     DECLARE_INFO;
     DECLARE_VISIT_CHILDREN;
 
-    JSC::JSMap* jsMap() const { return m_map.get(); }
+    const WTF::String& type() const { return m_type; }
+    void setType(WTF::String type) { m_type = WTFMove(type); }
+
+    const WTF::String& subtype() const { return m_subtype; }
+    void setSubtype(WTF::String subtype) { m_subtype = WTFMove(subtype); }
+
+    JSMIMEParams* parameters() const { return m_parameters.get(); }
 
 private:
-    JSMIMEParams(JSC::VM& vm, JSC::Structure* structure);
-    void finishCreation(JSC::VM& vm, JSC::JSMap* map);
+    JSMIMEType(JSC::VM& vm, JSC::Structure* structure);
+    void finishCreation(JSC::VM& vm, WTF::String type, WTF::String subtype, JSMIMEParams* params);
 
-    JSC::WriteBarrier<JSC::JSMap> m_map;
+    WTF::String m_type;
+    WTF::String m_subtype;
+    JSC::WriteBarrier<JSMIMEParams> m_parameters;
 };
 
-class JSMIMEParamsPrototype final : public JSC::JSNonFinalObject {
+class JSMIMETypePrototype final : public JSC::JSNonFinalObject {
 public:
     using Base = JSC::JSNonFinalObject;
     static constexpr unsigned StructureFlags = Base::StructureFlags | JSC::ImplementsDefaultHasInstance;
 
-    static JSMIMEParamsPrototype* create(JSC::VM& vm, JSC::JSGlobalObject* globalObject, JSC::Structure* structure);
+    static JSMIMETypePrototype* create(JSC::VM& vm, JSC::JSGlobalObject* globalObject, JSC::Structure* structure);
 
     DECLARE_INFO;
 
@@ -60,16 +69,16 @@ public:
     static JSC::Structure* createStructure(JSC::VM& vm, JSC::JSGlobalObject* globalObject, JSC::JSValue prototype);
 
 private:
-    JSMIMEParamsPrototype(JSC::VM& vm, JSC::Structure* structure);
+    JSMIMETypePrototype(JSC::VM& vm, JSC::Structure* structure);
     void finishCreation(JSC::VM& vm);
 };
 
-class JSMIMEParamsConstructor final : public JSC::InternalFunction {
+class JSMIMETypeConstructor final : public JSC::InternalFunction {
 public:
     using Base = JSC::InternalFunction;
     static constexpr unsigned StructureFlags = Base::StructureFlags;
 
-    static JSMIMEParamsConstructor* create(JSC::VM& vm, JSC::Structure* structure, JSC::JSObject* prototype);
+    static JSMIMETypeConstructor* create(JSC::VM& vm, JSC::Structure* structure, JSC::JSObject* prototype);
 
     DECLARE_INFO;
 
@@ -81,16 +90,11 @@ public:
     static JSC::Structure* createStructure(JSC::VM& vm, JSC::JSGlobalObject* globalObject, JSC::JSValue prototype);
 
 private:
-    JSMIMEParamsConstructor(JSC::VM& vm, JSC::Structure* structure);
+    JSMIMETypeConstructor(JSC::VM& vm, JSC::Structure* structure);
     void finishCreation(JSC::VM& vm, JSC::JSObject* prototype);
 };
 
 // Function to setup the structures lazily
-void setupJSMIMEParamsClassStructure(JSC::LazyClassStructure::Initializer&);
-
-JSC_DECLARE_HOST_FUNCTION(instantiateMimeParams);
-JSC::JSValue createJSMIMEBinding(Zig::GlobalObject* globalObject);
-
-bool parseMIMEParamsString(JSGlobalObject* globalObject, JSMap* map, const StringView& input);
+void setupJSMIMETypeClassStructure(JSC::LazyClassStructure::Initializer&);
 
 } // namespace WebCore

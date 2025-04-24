@@ -220,7 +220,7 @@ static String encodeParamValue(const StringView& value)
 
 // Parses the parameter string and populates the map.
 // Returns true on success, false on failure (exception should be set).
-static bool parseMIMEParamsString(JSGlobalObject* globalObject, JSMap* map, const StringView& input)
+bool parseMIMEParamsString(JSGlobalObject* globalObject, JSMap* map, const StringView& input)
 {
     VM& vm = globalObject->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
@@ -316,13 +316,13 @@ static bool parseMIMEParamsString(JSGlobalObject* globalObject, JSMap* map, cons
         int invalidNameIndex = findFirstInvalidHTTPTokenChar(name);
         if (name.isEmpty() || invalidNameIndex != -1) {
             scope.throwException(globalObject, JSValue::decode(Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "parameter name"_s, input.toString(), invalidNameIndex)));
-            return false;
+            RETURN_IF_EXCEPTION(scope, false);
         }
 
         int invalidValueIndex = findFirstInvalidHTTPQuotedStringChar(valueStr);
         if (invalidValueIndex != -1) {
             scope.throwException(globalObject, JSValue::decode(Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "parameter value"_s, input.toString(), invalidValueIndex)));
-            return false;
+            RETURN_IF_EXCEPTION(scope, false);
         }
 
         // Add to map only if the name doesn't exist yet (first one wins)
@@ -695,42 +695,6 @@ JSC_DEFINE_HOST_FUNCTION(constructMIMEParams, (JSGlobalObject * globalObject, Ca
     return JSC::JSValue::encode(instance);
 }
 
-// New function: Parse MIMEParams string into a MIMEParams object
-JSC_DEFINE_HOST_FUNCTION(instantiateMimeParams, (JSGlobalObject * globalObject, CallFrame* callFrame))
-{
-    VM& vm = globalObject->vm();
-    auto scope = DECLARE_THROW_SCOPE(vm);
-
-    // Require at least one argument (the string to parse)
-    if (callFrame->argumentCount() < 1) {
-        Bun::ERR::INVALID_ARG_TYPE(scope, globalObject, "instantiateMimeParams"_s, "string"_s, callFrame->argument(0));
-        return {};
-    }
-
-    // Get the structure for MIMEParams
-    auto* zigGlobalObject = defaultGlobalObject(globalObject);
-    JSC::Structure* structure = zigGlobalObject->m_JSMIMEParamsClassStructure.get(zigGlobalObject);
-
-    // Create a new map
-    JSMap* map = JSMap::create(vm, globalObject->mapStructure());
-    RETURN_IF_EXCEPTION(scope, {});
-
-    // Parse the input string
-    JSValue inputArg = callFrame->argument(0);
-    String inputString = inputArg.toWTFString(globalObject);
-    RETURN_IF_EXCEPTION(scope, {});
-
-    if (!parseMIMEParamsString(globalObject, map, inputString)) {
-        // parseMIMEParamsString should have set the exception
-        ASSERT(scope.exception());
-        return encodedJSValue();
-    }
-
-    // Create and return the MIMEParams instance
-    JSMIMEParams* instance = JSMIMEParams::create(vm, structure, map);
-    return JSC::JSValue::encode(instance);
-}
-
 void JSMIMEParamsConstructor::finishCreation(VM& vm, JSObject* prototype)
 {
     Base::finishCreation(vm, 0, "MIMEParams"_s);
@@ -760,13 +724,15 @@ void setupJSMIMEParamsClassStructure(LazyClassStructure::Initializer& init)
     init.setConstructor(constructor);
 }
 
-JSValue createJSMIMEParamsBinding(Zig::GlobalObject* globalObject)
+JSValue createJSMIMEBinding(Zig::GlobalObject* globalObject)
 {
     VM& vm = globalObject->vm();
     JSObject* obj = constructEmptyObject(globalObject);
 
     obj->putDirect(vm, PropertyName(Identifier::fromString(vm, "MIMEParams"_s)),
         globalObject->m_JSMIMEParamsClassStructure.constructor(globalObject));
+    obj->putDirect(vm, PropertyName(Identifier::fromString(vm, "MIMEType"_s)),
+        globalObject->m_JSMIMETypeClassStructure.constructor(globalObject));
 
     return obj;
 }

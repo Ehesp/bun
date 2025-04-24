@@ -577,6 +577,7 @@ public:
     LazyClassStructure m_JSPublicKeyObjectClassStructure;
     LazyClassStructure m_JSPrivateKeyObjectClassStructure;
     LazyClassStructure m_JSMIMEParamsClassStructure;
+    LazyClassStructure m_JSMIMETypeClassStructure;
 
     /**
      * WARNING: You must update visitChildrenImpl() if you add a new field.
