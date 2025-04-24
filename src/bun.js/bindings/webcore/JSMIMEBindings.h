@@ -1,7 +1,6 @@
 #pragma once
 
 #include "root.h"
-#include <JavaScriptCore/JSValue.h>
 
 namespace Zig {
 class GlobalObject;
