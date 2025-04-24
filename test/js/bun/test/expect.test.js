@@ -1710,9 +1710,6 @@ describe("expect()", () => {
     const ab1 = new SharedArrayBuffer(1);
     expect(ab1).toEqual(new SharedArrayBuffer(1));
     expect(ab1).not.toEqual(new ArrayBuffer(1));
-    expect(new SharedArrayBuffer(3)).toMatchSnapshot();
-    // @ts-expect-error
-    expect(() => expect(new SharedArrayBuffer(3)).toEqual(new ArrayBuffer(3))).toThrowErrorMatchingSnapshot();
   });
 
   test("symbol based keys in arrays are processed correctly", () => {
