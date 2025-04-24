@@ -5,3 +5,11 @@ exports[`expect() toMatchSnapshot to return undefined 1`] = `"abc"`;
 exports[`expect() toThrowErrorMatchingSnapshot to return undefined 1`] = `undefined`;
 
 exports[`expect() toThrowErrorMatchingSnapshot to return undefined: undefined 1`] = `undefined`;
+
+exports[`expect() toEqual ArrayBuffer with SharedArrayBuffer 1`] = `
+SharedArrayBuffer [
+  0,
+  0,
+  0,
+]
+`;
