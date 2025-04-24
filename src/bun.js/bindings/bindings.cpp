@@ -1280,10 +1280,6 @@ std::optional<bool> specialObjectsDequal(JSC__JSGlobalObject* globalObject, Mark
             return false;
         }
 
-        if (UNLIKELY(left->isShared() != right->isShared())) {
-            return false;
-        }
-
         if (byteLength == 0)
             return true;
 
