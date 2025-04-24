@@ -251,56 +251,49 @@ bool parseMIMEParamsString(JSGlobalObject* globalObject, JSMap* map, StringView 
         // Check if there's a value part (an '=' sign)
         if (position < length && input[position] == '=') {
             position++; // Skip '='
-            position += findEndBeginningWhitespace(input.substring(position)); // Skip whitespace after '='
 
-            if (position < length) {
-                UChar firstChar = input[position];
-                if (firstChar == '"') {
-                    // Quoted string value
-                    position++; // Skip opening quote
-                    size_t valueStart = position;
-                    bool escaped = false;
-                    while (position < length) {
-                        UChar c = input[position];
-                        if (escaped) {
-                            escaped = false;
-                        } else if (c == '\\') {
-                            escaped = true;
-                        } else if (c == '"') {
-                            break; // Found closing quote
-                        }
-                        position++;
+            if (position < length && input[position] == '"') {
+                // Quoted string value
+                position++; // Skip opening quote
+                size_t valueStart = position;
+                bool escaped = false;
+                while (position < length) {
+                    UChar c = input[position];
+                    if (escaped) {
+                        escaped = false;
+                    } else if (c == '\\') {
+                        escaped = true;
+                    } else if (c == '"') {
+                        break; // Found closing quote
                     }
-                    valueView = input.substring(valueStart, position - valueStart);
-                    valueStr = removeBackslashes(valueView);
+                    position++;
+                }
+                valueView = input.substring(valueStart, position - valueStart);
+                valueStr = removeBackslashes(valueView);
 
-                    if (position < length && input[position] == '"') {
-                        position++; // Skip closing quote
-                    } else {
-                        // Node.js behavior seems to allow this, just consuming until the end or next semicolon
-                        valueStr = removeBackslashes(valueView);
-                        size_t semicolonPos = input.find(';', position);
-                        position = (semicolonPos == notFound) ? length : semicolonPos;
-                    }
+                if (position < length && input[position] == '"') {
+                    position++; // Skip closing quote
                 } else {
-                    // Token value (potentially empty)
-                    size_t valueEnd = position;
-                    while (valueEnd < length && input[valueEnd] != ';') {
-                        valueEnd++;
-                    }
-                    valueView = input.substring(position, valueEnd - position);
-                    // Trim trailing whitespace
-                    size_t trimmedEnd = findStartEndingWhitespace(valueView);
-                    valueStr = valueView.substring(0, trimmedEnd).toString();
-                    position = valueEnd;
+                    // Node.js behavior seems to allow this, just consuming until the end or next semicolon
+                    valueStr = removeBackslashes(valueView);
+                    size_t semicolonPos = input.find(';', position);
+                    position = (semicolonPos == notFound) ? length : semicolonPos;
+                }
+            } else {
+                // Token value (potentially empty)
+                size_t valueEnd = position;
+                while (valueEnd < length && input[valueEnd] != ';') {
+                    valueEnd++;
+                }
+                valueView = input.substring(position, valueEnd - position);
+                // Trim trailing whitespace
+                size_t trimmedEnd = findStartEndingWhitespace(valueView);
+                valueStr = valueView.substring(0, trimmedEnd).toString();
+                position = valueEnd;
+                if (valueStr.isEmpty()) {
+                    continue; // skip adding this parameter
                 }
             }
-            // else: value part is empty after '=', e.g. "foo=;" or "foo=" at end. Treat as empty value.
-            if (valueStr.isNull()) valueStr = String();
-            if (valueStr.isEmpty()) {
-                continue; // skip adding this parameter
-            }
-
         } else {
             // Parameter name without a value (e.g., ";foo;") - Node ignores these.
             // Skip until the next semicolon or end of string.
@@ -314,14 +307,14 @@ bool parseMIMEParamsString(JSGlobalObject* globalObject, JSMap* map, StringView 
         // Validate name and value according to HTTP token/quoted-string rules
         int invalidNameIndex = findFirstInvalidHTTPTokenChar(name);
         if (name.isEmpty() || invalidNameIndex != -1) {
-            Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "parameter name"_s, input.toString(), invalidNameIndex);
-            RETURN_IF_EXCEPTION(scope, false);
+            // invalid name
+            continue; // skip adding this parameter
         }
 
         int invalidValueIndex = findFirstInvalidHTTPQuotedStringChar(valueStr);
         if (invalidValueIndex != -1) {
-            Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "parameter value"_s, input.toString(), invalidValueIndex);
-            RETURN_IF_EXCEPTION(scope, false);
+            // invalid value
+            continue; // skip adding this parameter
         }
 
         // Add to map only if the name doesn't exist yet (first one wins)
