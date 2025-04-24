@@ -91,6 +91,6 @@ void setupJSMIMEParamsClassStructure(JSC::LazyClassStructure::Initializer&);
 JSC_DECLARE_HOST_FUNCTION(instantiateMimeParams);
 JSC::JSValue createJSMIMEBinding(Zig::GlobalObject* globalObject);
 
-bool parseMIMEParamsString(JSGlobalObject* globalObject, JSMap* map, const StringView& input);
+bool parseMIMEParamsString(JSGlobalObject* globalObject, JSMap* map, StringView input);
 
 } // namespace WebCore

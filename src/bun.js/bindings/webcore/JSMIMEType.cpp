@@ -217,45 +217,45 @@ static String encodeParamValue(const StringView& value)
 
 // Helper to parse type/subtype
 // Returns {type, subtype, parameters_start_index} or throws on error
-static std::tuple<String, String, size_t> parseTypeAndSubtype(JSGlobalObject* globalObject, const StringView& input)
+static std::tuple<String, String, size_t> parseTypeAndSubtype(JSGlobalObject* globalObject, GCOwnedDataScope<StringView>& input)
 {
     VM& vm = globalObject->vm();
     auto scope = DECLARE_THROW_SCOPE(vm);
 
     size_t position = findEndBeginningWhitespace(input);
-    size_t length = input.length();
+    size_t length = input->length();
 
     // Find end of type
-    size_t typeEnd = input.find('/', position);
+    size_t typeEnd = input->find('/', position);
     if (typeEnd == notFound) {
-        StringView remaining = input.substring(position);
+        StringView remaining = input->substring(position);
         size_t invalidIndex = findFirstInvalidHTTPTokenChar(remaining);
         // Adjust index relative to original string
         size_t originalIndex = (invalidIndex == -1) ? notFound : position + invalidIndex;
-        scope.throwException(globalObject, JSValue::decode(Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "type"_s, input.toString(), originalIndex)));
+        Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "type"_s, input->toString(), originalIndex);
         return {};
     }
 
-    StringView typeView = input.substring(position, typeEnd - position);
+    StringView typeView = input->substring(position, typeEnd - position);
     int invalidTypeIndex = findFirstInvalidHTTPTokenChar(typeView);
     if (typeView.isEmpty() || invalidTypeIndex != -1) {
         size_t originalIndex = (invalidTypeIndex == -1) ? position : position + invalidTypeIndex;
-        scope.throwException(globalObject, JSValue::decode(Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "type"_s, input.toString(), originalIndex)));
+        Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "type"_s, input->toString(), originalIndex);
         return {};
     }
     String type = typeView.convertToASCIILowercase();
     position = typeEnd + 1; // Skip '/'
 
     // Find end of subtype
-    size_t subtypeEnd = input.find(';', position);
+    size_t subtypeEnd = input->find(';', position);
     size_t paramsStartIndex;
     StringView rawSubtypeView;
 
     if (subtypeEnd == notFound) {
-        rawSubtypeView = input.substring(position);
+        rawSubtypeView = input->substring(position);
         paramsStartIndex = length; // Parameters start at the end if no ';'
     } else {
-        rawSubtypeView = input.substring(position, subtypeEnd - position);
+        rawSubtypeView = input->substring(position, subtypeEnd - position);
         paramsStartIndex = subtypeEnd + 1; // Parameters start after ';'
     }
 
@@ -266,7 +266,7 @@ static std::tuple<String, String, size_t> parseTypeAndSubtype(JSGlobalObject* gl
     int invalidSubtypeIndex = findFirstInvalidHTTPTokenChar(subtypeView);
     if (subtypeView.isEmpty() || invalidSubtypeIndex != -1) {
         size_t originalIndex = (invalidSubtypeIndex == -1) ? position : position + invalidSubtypeIndex;
-        scope.throwException(globalObject, JSValue::decode(Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "subtype"_s, input.toString(), originalIndex)));
+        Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "subtype"_s, input->toString(), originalIndex);
         return {};
     }
     String subtype = subtypeView.convertToASCIILowercase();
@@ -371,7 +371,7 @@ JSC_DEFINE_CUSTOM_SETTER(jsMIMETypeProtoSetterType, (JSGlobalObject * globalObje
     // Validate type
     int invalidIndex = findFirstInvalidHTTPTokenChar(typeStr);
     if (typeStr.isEmpty() || invalidIndex != -1) {
-        scope.throwException(globalObject, JSValue::decode(Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "type"_s, typeStr, invalidIndex)));
+        Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "type"_s, typeStr, invalidIndex);
         return {};
     }
 
@@ -411,7 +411,7 @@ JSC_DEFINE_CUSTOM_SETTER(jsMIMETypeProtoSetterSubtype, (JSGlobalObject * globalO
     // Validate subtype
     int invalidIndex = findFirstInvalidHTTPTokenChar(subtypeStr);
     if (subtypeStr.isEmpty() || invalidIndex != -1) {
-        scope.throwException(globalObject, JSValue::decode(Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "subtype"_s, subtypeStr, invalidIndex)));
+        Bun::ERR::INVALID_MIME_SYNTAX(scope, globalObject, "subtype"_s, subtypeStr, invalidIndex);
         return {};
     }
 
@@ -557,8 +557,9 @@ JSC_DEFINE_HOST_FUNCTION(constructMIMEType, (JSGlobalObject * globalObject, Call
 
     // 1. Get input string
     JSValue inputArg = callFrame->argument(0);
-    String inputString = inputArg.toWTFString(globalObject);
+    auto* jsInputString = inputArg.toString(globalObject);
     RETURN_IF_EXCEPTION(scope, {});
+    auto inputString = jsInputString->view(globalObject);
 
     // 2. Parse type and subtype
     String type, subtype;
@@ -572,7 +573,7 @@ JSC_DEFINE_HOST_FUNCTION(constructMIMEType, (JSGlobalObject * globalObject, Call
     JSMap* paramsMap = JSMap::create(vm, globalObject->mapStructure());
     RETURN_IF_EXCEPTION(scope, {}); // OOM check for map
 
-    StringView paramsStringView = inputString.substring(paramsStartIndex);
+    auto paramsStringView = inputString->substring(paramsStartIndex);
     parseMIMEParamsString(globalObject, paramsMap, paramsStringView);
     RETURN_IF_EXCEPTION(scope, {});
 
