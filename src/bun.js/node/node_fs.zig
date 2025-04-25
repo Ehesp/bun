@@ -4022,6 +4022,20 @@ pub const NodeFS = struct {
                         working_mem[i] = std.fs.path.sep;
                         switch (err.getErrno()) {
                             .EXIST => {
+                                // On Windows, this may happen if trying to mkdir replacing a file
+                                if (bun.Environment.isWindows) {
+                                    switch (bun.sys.directoryExistsAt(bun.invalid_fd, parent)) {
+                                        .err => {},
+                                        .result => |res| {
+                                            // is a directory. break.
+                                            if (!res) .{ .err = .{
+                                                .errno = @intFromEnum(bun.sys.E.NOTDIR),
+                                                .syscall = .mkdir,
+                                                .path = this.osPathIntoSyncErrorBuf(strings.withoutNTPrefix(bun.OSPathChar, path[0..len])),
+                                            } };
+                                        },
+                                    }
+                                }
                                 // Handle race condition
                                 break;
                             },
